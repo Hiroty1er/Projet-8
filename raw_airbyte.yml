@@ -1,0 +1,7 @@
+version: 2
+
+sources:
+  - name: airbyte_raw
+    schema: airbyte_internal # Adapter selon votre configuration de destination Airbyte
+    tables:
+      - name: _airbyte_raw_meteo_stream
