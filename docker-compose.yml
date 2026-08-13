@@ -6,29 +6,23 @@ services:
     restart: always
     # set shared memory limit when using docker compose
     shm_size: 128mb
-
     environment:
       POSTGRES_PASSWORD: ${PG_PASS}
 
   adminer:
     image: adminer
     restart: always
-
     ports:
-      - 8080:8080
+      - "8081:8081"
   
   dbt:
-    build:
-      dockerfile: python.dockerfile
-      args:
-        PYTHON_WORKING_DIR: ${PYTHON_WORKING_DIR}
-    restart: always
+    image: ghcr.io/dbt-labs/dbt-postgres:1.7.2
     container_name: dbt
-
-    command: tail -f /dev/null
-    environment:
-      - PG_HOST=projet-8-db-1
-      - PG_PORT=5432
-      - PG_USERNAME=postgres
-      - PG_PASS=${PG_PASS}
-      - DB_NAME=Airbyte
+    depends_on:
+      - db
+    tty: true
+    stdin_open: true
+    volumes:
+      
+  
+  kestra:
