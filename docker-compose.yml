@@ -1,28 +1,60 @@
-# Use postgres/example user/password credentials
-
 services:
   db:
-    image: postgres
+    image: postgres:15
+    container_name: postgres_db
     restart: always
-    # set shared memory limit when using docker compose
     shm_size: 128mb
     environment:
-      POSTGRES_PASSWORD: ${PG_PASS}
+      POSTGRES_USER: ${PG_USER:-postgres}
+      POSTGRES_PASSWORD: ${PG_PASS:-postgres}
+      POSTGRES_DB: ${PG_DB:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
   adminer:
     image: adminer
+    container_name: adminer
     restart: always
     ports:
-      - "8081:8081"
-  
-  dbt:
-    image: ghcr.io/dbt-labs/dbt-postgres:1.7.2
-    container_name: dbt
-    depends_on:
-      - db
-    tty: true
-    stdin_open: true
-    volumes:
-      
-  
+      - "8081:8080"
+
   kestra:
+    image: kestra/kestra:latest
+    container_name: kestra
+    command: server standalone
+    restart: always
+    ports:
+      - "8082:8080"
+    environment:
+      # Permet à Kestra de communiquer avec la base Postgres du docker-compose
+      KESTRA_CONFIGURATION: |
+        kestra:
+          storage:
+            type: local
+            local:
+              base-path: "/app/storage"
+          queue:
+            type: postgres
+          repository:
+            type: postgres
+          tasks:
+            tmp-dir:
+              path: "/tmp/kestra-wd"
+        datasources:
+          postgres:
+            url: jdbc:postgresql://db:5432/postgres
+            driverClassName: org.postgresql.Driver
+            username: ${PG_USER:-postgres}
+            password: ${PG_PASS:-postgres}
+    volumes:
+      - kestra_data:/app/storage
+      - /var/run/docker.sock:/var/run/docker.sock # Important pour exécuter dbt dans Docker
+      - /tmp/kestra-wd:/tmp/kestra-wd
+
+volumes:
+  postgres_data:
+    name: postgres_data
+  kestra_data:
+    name: kestra_data
